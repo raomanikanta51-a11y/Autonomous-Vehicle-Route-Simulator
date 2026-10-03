@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vector — Autonomous Route Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #f5f6f3;
+  --card: #fff;
+  --ink: #202820;
+  --muted: #849080;
+  --line: #e6eae2;
+  --lime: #d3f36b;
+  --green: #4d722d;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px 'DM Sans', sans-serif;
+}
+button, input, select { font: inherit; }
+button, select { cursor: pointer; }
+button { transition: .18s ease; }
+button:hover { filter: brightness(.96); }
+button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible {
+  outline: 3px solid #93b947; outline-offset: 3px;
+}
+.app { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
+.sidebar {
+  background: #1e261f; color: #a2ad9e; padding: 31px 21px;
+  display: flex; flex-direction: column; gap: 40px;
+}
+.brand {
+  color: white; display: flex; align-items: center;
+  gap: 11px; font: 700 27px 'Space Grotesk', sans-serif;
+  letter-spacing: -1.5px;
+}
+.brand-icon {
+  display: grid; place-items: center; width: 35px; height: 35px;
+  color: #202820; background: var(--lime); border-radius: 10px;
+  font-size: 26px; transform: rotate(-6deg);
+}
+.brand small { font: 500 9px 'DM Sans', sans-serif; letter-spacing: 1px; color: #899784; }
+.nav-label { font-size: 10px; letter-spacing: 1.8px; color: #74816f; margin: 0 12px 15px; }
+.nav { display: grid; gap: 8px; }
+.nav a {
+  text-decoration: none; color: #a2ad9e; border-radius: 9px;
+  padding: 13px 14px; display: flex; align-items: center; gap: 11px;
+}
+.nav a.active { background: #35412c; color: var(--lime); }
+.nav a:hover { background: #2b352a; }
+.nav-symbol { font-size: 19px; width: 23px; text-align: center; }
+.sidebar-note {
+  margin-top: auto; padding: 17px; border: 1px solid #3a4436; border-radius: 12px;
+  line-height: 1.7; font-size: 12px;
+}
+.sidebar-note strong { color: #d5e0cd; display: block; margin-bottom: 5px; }
+.user {
+  display: flex; align-items: center; gap: 10px;
+  padding-top: 20px; border-top: 1px solid #394134; font-size: 12px;
+}
+.avatar { background: #536143; color: #e7eedb; padding: 10px; border-radius: 50%; }
+.user strong { display: block; color: #e5eade; margin-bottom: 3px; }
+.workspace { padding: 0 34px 28px; min-width: 0; }
+.topbar {
+  height: 83px; display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid var(--line);
+}
+.breadcrumb { font-size: 12px; color: #8c9687; }
+.breadcrumb span { margin: 0 11px; color: #b9c0b5; }
+.breadcrumb strong { color: #56634f; font-weight: 500; }
+.top-actions { display: flex; align-items: center; gap: 14px; }
+.badge {
+  display: inline-flex; gap: 7px; align-items: center; border-radius: 20px;
+  background: #edf3e5; color: #537036; font-size: 11px; padding: 7px 11px;
+}
+.dot { width: 6px; height: 6px; background: #78a83f; border-radius: 50%; display: inline-block; }
+.icon-button {
+  border: 1px solid var(--line); border-radius: 9px;
+  width: 34px; height: 34px; background: white;
+}
+.heading { margin: 30px 0 25px; display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+.eyebrow { text-transform: uppercase; letter-spacing: 1.9px; font-size: 10px; color: #89987f; margin-bottom: 9px; }
+h1 { font: 600 29px 'Space Grotesk', sans-serif; margin: 0 0 8px; letter-spacing: -1px; }
+.subtitle { color: #8b9585; font-size: 12px; margin: 0; }
+.button {
+  padding: 11px 16px; border: 1px solid #dde3d5; border-radius: 8px;
+  background: white; color: #43533b; font-size: 12px; font-weight: 600;
+}
+.button.primary { background: var(--lime); border-color: var(--lime); color: #2e401c; }
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 23px; }
+.metric { padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: white; }
+.metric-top { display: flex; justify-content: space-between; color: #829077; font-size: 11px; }
+.metric-icon { color: #6d7c60; background: #f2f5ed; border-radius: 6px; padding: 4px 7px; margin-top: -3px; }
+.metric-value { font: 600 27px 'Space Grotesk', sans-serif; margin: 8px 0; letter-spacing: -.7px; }
+.metric-value small { font-size: 13px; color: #9ba590; font-weight: 400; margin-left: 4px; }
+.metric-foot { color: #99a18f; font-size: 10px; }
+.metric-foot em { color: #6b8b47; font-style: normal; }
+.simulator { display: grid; grid-template-columns: minmax(0, 1fr) 284px; gap: 20px; align-items: start; }
+.panel { background: white; border: 1px solid var(--line); border-radius: 13px; overflow: hidden; }
+.panel-header { padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.panel-title { font: 600 14px 'Space Grotesk', sans-serif; }
+.panel-subtitle { color: #929c88; font-size: 10px; margin-top: 4px; }
+.map-tabs { display: flex; gap: 3px; background: #f3f5ee; padding: 3px; border-radius: 7px; }
+.map-tabs button { border: 0; padding: 6px 10px; background: transparent; border-radius: 5px; font-size: 10px; color: #8e9983; }
+.map-tabs button.active { background: white; color: #46513b; box-shadow: 0 1px 3px #00000010; }
+.map-wrap { position: relative; height: 430px; background: #eef1e9; border-block: 1px solid var(--line); overflow: hidden; }
+canvas { display: block; width: 100%; height: 100%; touch-action: manipulation; }
+.map-chip {
+  position: absolute; top: 15px; left: 15px; background: #ffffffeb;
+  padding: 9px 11px; border-radius: 7px; color: #758168;
+  font-size: 10px; box-shadow: 0 3px 10px #29372108; pointer-events: none;
+}
+.map-chip strong { color: #3c4e31; margin-right: 5px; }
+.north { position: absolute; right: 18px; top: 17px; font-size: 11px; text-align: center; color: #67765d; pointer-events: none; }
+.north div { font-size: 23px; margin-top: 3px; }
+.legend {
+  position: absolute; bottom: 14px; left: 14px; display: flex;
+  flex-wrap: wrap; gap: 13px; background: #fffffff0;
+  padding: 9px 12px; border-radius: 6px; font-size: 9px; color: #7a866e; pointer-events: none;
+}
+.legend span { display: flex; align-items: center; gap: 5px; }
+.legend i { width: 7px; height: 7px; border-radius: 50%; background: #759b45; }
+.legend i.dark { background: #38492e; }
+.legend i.red { background: #cb795f; }
+.map-footer { padding: 14px 19px; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.status { font-size: 11px; color: #68765d; display: flex; gap: 7px; align-items: center; }
+.map-help { font-size: 10px; color: #9aa38f; }
+.controls .panel-header { border-bottom: 1px solid var(--line); }
+.control-body { padding: 19px; }
+.section-label { font-size: 10px; letter-spacing: 1.1px; font-weight: 700; color: #93a086; margin-bottom: 15px; }
+.field { margin-bottom: 15px; }
+.field label { display: block; color: #6d7a62; font-size: 11px; margin-bottom: 8px; }
+select {
+  width: 100%; padding: 10px 9px; border: 1px solid #e2e7db;
+  background: #fafbf7; color: #46513d; border-radius: 7px; font-size: 11px;
+}
+.route-fields { border-left: 1px dashed #cdd8bd; margin-left: 5px; padding-left: 16px; }
+.range-label { display: flex; justify-content: space-between; font-size: 11px; color: #6c7b5e; margin-bottom: 10px; }
+.range-label output { color: #435433; font-weight: 600; }
+input[type=range] { width: 100%; accent-color: #84a84e; height: 4px; margin: 6px 0 13px; cursor: pointer; }
+.range-extents { display: flex; justify-content: space-between; font-size: 9px; color: #a0aa95; }
+.divider { border-top: 1px solid var(--line); margin: 19px 0; }
+.weather { display: flex; gap: 6px; }
+.weather button {
+  flex: 1; background: #fafbf7; border: 1px solid #e5e9dd;
+  padding: 10px 0; border-radius: 7px; color: #8c977f; font-size: 10px;
+}
+.weather button span { display: block; font-size: 18px; margin-bottom: 5px; }
+.weather button.active { border-color: #b4cc8e; background: #f1f7e7; color: #557239; }
+.run-controls { display: flex; gap: 8px; margin-top: 20px; }
+.run-controls .primary { flex: 1; }
+.reset { width: 40px; padding: 10px; font-size: 18px; }
+.sim-note { font-size: 9px; color: #a1aa96; text-align: center; margin: 12px 0 0; line-height: 1.6; }
+.telemetry { margin-top: 20px; }
+.telemetry-grid { display: grid; grid-template-columns: repeat(3, 1fr); padding: 0 20px 19px; gap: 15px; }
+.telemetry-item { border-right: 1px solid var(--line); }
+.telemetry-item:last-child { border: 0; }
+.telemetry-item label { display: block; color: #94a087; font-size: 10px; margin-bottom: 8px; }
+.telemetry-item strong { font: 500 20px 'Space Grotesk', sans-serif; }
+.telemetry-item small { color: #9aa58c; font-size: 10px; }
+.progress { height: 4px; background: #f0f3ea; margin-top: 12px; margin-right: 18px; border-radius: 4px; overflow: hidden; }
+.progress div { height: 100%; background: #a5c86c; width: 0; transition: width .25s; }
+.page-footer { display: flex; justify-content: space-between; margin-top: 20px; color: #9ba590; font-size: 10px; gap: 10px; }
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  color: #edf4e4; background: #293523; border-radius: 9px;
+  padding: 13px 20px; box-shadow: 0 5px 25px #0002; z-index: 10;
+  max-width: 90vw; font-size: 12px;
+}
+.toast:empty { display: none; }
+@media(min-width: 1550px) {
+  .workspace { max-width: 1510px; width: 100%; margin: auto; }
+  .map-wrap { height: 520px; }
+}
+@media(max-width: 1150px) {
+  .app { grid-template-columns: 78px minmax(0, 1fr); }
+  .sidebar { padding: 28px 14px; align-items: center; }
+  .brand-text, .nav-label, .nav-text, .sidebar-note, .user { display: none; }
+  .nav a { padding: 13px 9px; }
+  .workspace { padding-inline: 22px; }
+  .simulator { grid-template-columns: minmax(0, 1fr) 250px; gap: 15px; }
+  .map-help { display: none; }
+}
+@media(max-width: 850px) {
+  .simulator { grid-template-columns: 1fr; }
+  .control-body { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .control-body .divider { display: none; }
+  .control-body .run-section { grid-column: 1 / -1; }
+  .run-controls { margin-top: 0; }
+  .metrics { gap: 9px; }
+  .metric { padding: 15px 12px; }
+  .metric-value { font-size: 23px; }
+}
+@media(max-width: 570px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .workspace { padding-inline: 15px; }
+  .topbar { height: 62px; }
+  .top-actions .badge { font-size: 9px; }
+  .heading { align-items: start; margin-top: 23px; }
+  h1 { font-size: 24px; }
+  .heading .button { padding: 9px; font-size: 10px; white-space: nowrap; }
+  .subtitle { font-size: 11px; line-height: 1.6; }
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .metric-value { font-size: 26px; }
+  .map-wrap { height: 350px; }
+  .panel-header { padding: 16px; }
+  .control-body { padding: 16px; gap: 17px; }
+  .page-footer { line-height: 1.6; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">↗</div>
+      <div class="brand-text">vector<small> LABS</small></div>
+    </div>
+    <div>
+      <p class="nav-label">WORKSPACE</p>
+      <nav class="nav" aria-label="Main navigation">
+        <a class="active" href="#simulator"><span class="nav-symbol">⌘</span><span class="nav-text">Route simulator</span></a>
+        <a href="#configuration"><span class="nav-symbol">⊞</span><span class="nav-text">Configuration</span></a>
+        <a href="#telemetry"><span class="nav-symbol">▥</span><span class="nav-text">Live telemetry</span></a>
+      </nav>
+    </div>
+    <div class="sidebar-note">
+      <strong>Built for the road ahead.</strong>
+      Explore safer paths in a world where every turn is an experiment.
+      <div style="margin-top:14px;color:#bfd58f">Interactive sandbox ↗</div>
+    </div>
+    <div class="user">
+      <div class="avatar">EX</div>
+      <div><strong>Explorer workspace</strong>Local simulation</div>
+    </div>
+  </aside>
+
+<main class="workspace">
+    <header class="topbar">
+      <div class="breadcrumb">Workspace <span>/</span><strong>Route simulator</strong></div>
+      <div class="top-actions">
+        <span class="badge"><i class="dot"></i> Simulation engine ready</span>
+        <button class="icon-button" id="help" aria-label="Show simulator help">?</button>
+      </div>
+    </header>
+
+<section class="heading">
+      <div>
+        <div class="eyebrow">Autonomous mobility playground</div>
+        <h1>Every route. Reimagined.</h1>
+        <p class="subtitle">Plan, simulate, and explore autonomous journeys in a virtual city.</p>
+      </div>
+      <button class="button" id="export">↓ &nbsp; Export run</button>
+    </section>
+
+<section class="metrics" aria-label="Route overview">
+      <article class="metric">
+        <div class="metric-top">Route distance <span class="metric-icon">↗</span></div>
+        <div class="metric-value"><span id="distance">0.00</span><small>km</small></div>
+        <div class="metric-foot"><em>Optimal path</em> · weighted routing</div>
+      </article>
+      <article class="metric">
+        <div class="metric-top">Estimated time <span class="metric-icon">◷</span></div>
+        <div class="metric-value"><span id="eta">0:00</span><small>min</small></div>
+        <div class="metric-foot">Based on current conditions</div>
+      </article>
+      <article class="metric">
+        <div class="metric-top">Current speed <span class="metric-icon">⌁</span></div>
+        <div class="metric-value"><span id="currentSpeed">0</span><small>km/h</small></div>
+        <div class="metric-foot"><em id="driveState">Ready to start</em> · AV-001</div>
+      </article>
+      <article class="metric">
+        <div class="metric-top">Road closures <span class="metric-icon">⊘</span></div>
+        <div class="metric-value"><span id="closureCount">0</span><small>active</small></div>
+        <div class="metric-foot">Click an intersection to toggle</div>
+      </article>
+    </section>
+
+<div class="simulator" id="simulator">
+      <div>
+        <section class="panel">
+          <header class="panel-header">
+            <div>
+              <div class="panel-title">Simulation environment</div>
+              <div class="panel-subtitle">Greenfield district · virtual city</div>
+            </div>
+            <div class="map-tabs" aria-label="Map display">
+              <button class="active" data-layer="map" aria-pressed="true">Map</button>
+              <button data-layer="sensors" aria-pressed="false">Sensors</button>
+            </div>
+          </header>
+          <div class="map-wrap">
+            <canvas id="map" aria-label="Virtual street map. Click an intersection to add or remove a road closure. Route endpoints can be selected in configuration."></canvas>
+            <div class="map-chip"><strong>AV-001</strong> Autonomous vehicle</div>
+            <div class="north">N<div>↑</div></div>
+            <div class="legend">
+              <span><i></i> Planned route</span>
+              <span><i class="dark"></i> Vehicle</span>
+              <span><i class="red"></i> Closure</span>
+            </div>
+          </div>
+          <footer class="map-footer">
+            <div class="status" role="status"><i class="dot"></i><span id="status">Route calculated. Ready to simulate.</span></div>
+            <span class="map-help">Click intersections to close roads</span>
+          </footer>
+        </section>
+
+<section class="panel telemetry" id="telemetry">
+          <header class="panel-header">
+            <div class="panel-title">Journey telemetry</div>
+            <span class="badge"><i class="dot"></i> Synthetic data</span>
+          </header>
+          <div class="telemetry-grid">
+            <div class="telemetry-item">
+              <label>Route completed</label>
+              <strong id="completion">0</strong><small> %</small>
+              <div class="progress"><div id="progress"></div></div>
+            </div>
+            <div class="telemetry-item">
+              <label>Distance traveled</label>
+              <strong id="traveled">0.00</strong><small> km</small>
+              <div class="progress"><div id="distanceProgress"></div></div>
+            </div>
+            <div class="telemetry-item">
+              <label>Simulation time</label>
+              <strong id="elapsed">00:00</strong>
+              <div style="font-size:9px;color:#97a18c;margin-top:10px">20× playback speed</div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+<aside class="panel controls" id="configuration">
+        <header class="panel-header">
+          <div class="panel-title">Configure your journey</div>
+          <span style="color:#92a17f">⚙</span>
+        </header>
+        <div class="control-body">
+          <section>
+            <div class="section-label">01 &nbsp; ROUTE PLANNING</div>
+            <div class="route-fields">
+              <div class="field">
+                <label for="start">● &nbsp; Starting point</label>
+                <select id="start"></select>
+              </div>
+              <div class="field">
+                <label for="end">◎ &nbsp; Destination</label>
+                <select id="end"></select>
+              </div>
+            </div>
+          </section>
+          <div class="divider"></div>
+          <section>
+            <div class="section-label">02 &nbsp; DRIVING PARAMETERS</div>
+            <div class="range-label"><label for="speed">Speed limit</label><output id="speedLabel" for="speed">50 km/h</output></div>
+            <input id="speed" type="range" min="10" max="90" step="5" value="50">
+            <div class="range-extents"><span>10 km/h</span><span>90 km/h</span></div>
+            <div style="margin-top:20px">
+              <div class="range-label"><label for="traffic">Traffic density</label><output id="trafficLabel" for="traffic">Moderate</output></div>
+              <input id="traffic" type="range" min="0" max="100" value="35">
+              <div class="range-extents"><span>Clear</span><span>Heavy</span></div>
+            </div>
+          </section>
+          <div class="divider"></div>
+          <section>
+            <div class="section-label">03 &nbsp; WEATHER CONDITIONS</div>
+            <div class="weather" aria-label="Weather conditions">
+              <button class="active" data-weather="clear" aria-pressed="true"><span>☀</span>Clear</button>
+              <button data-weather="rain" aria-pressed="false"><span>☂</span>Rain</button>
+              <button data-weather="fog" aria-pressed="false"><span>≋</span>Fog</button>
+            </div>
+          </section>
+          <section class="run-section">
+            <div class="run-controls">
+              <button class="button primary" id="run">▶ &nbsp; Start simulation</button>
+              <button class="button reset" id="reset" aria-label="Reset run and clear road closures">↺</button>
+            </div>
+            <p class="sim-note">Conceptual routing demo.<br>Not a real-world autonomous driving system.</p>
+          </section>
+        </div>
+      </aside>
+    </div>
+
+<footer class="page-footer">
+      <span>VECTOR LABS &nbsp; / &nbsp; Move forward, intelligently.</span>
+      <span>Local sandbox · No live road data</span>
+    </footer>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+  'use strict';
+
+const $ = id => document.getElementById(id);
+  const canvas = $('map');
+  const ctx = canvas.getContext('2d');
+  const COLS = 10, ROWS = 7, STEP_X = 98, STEP_Y = 88;
+  const WORLD_W = 1000, WORLD_H = 650;
+  const KM_PER_UNIT = 0.002;
+  const PLAYBACK = 20;
+
+const places = [
+    { id: 61, name: 'Westside charging hub' },
+    { id: 18, name: 'Innovation campus' },
+    { id: 23, name: 'Central park entrance' },
+    { id: 46, name: 'Greenfield station' },
+    { id: 5, name: 'North market' },
+    { id: 68, name: 'Riverside terminal' }
+  ];
+
+for (const place of places) {
+    for (const target of ['start', 'end']) {
+      const option = document.createElement('option');
+      option.value = place.id;
+      option.textContent = place.name;
+      $(target).appendChild(option);
+    }
+  }
+  $('start').value = 61;
+  $('end').value = 18;
+
+const state = {
+    path: [], lengths: [], total: 0, traveled: 0, elapsed: 0,
+    running: false, complete: false, weather: 'clear', layer: 'map',
+    closures: new Set(), start: 61, end: 18
+  };
+  let viewport = { scale: 1, x: 0, y: 0, width: 1, height: 1 };
+  let toastTimer;
+  const point = id => ({ x: 60 + (id % COLS) * STEP_X, y: 60 + Math.floor(id / COLS) * STEP_Y });
+  const edgeLength = (a, b) => {
+    const p = point(a), q = point(b);
+    return Math.hypot(p.x - q.x, p.y - q.y);
+  };
+  const congestion = (a, b) => {
+    const seed = Math.min(a, b) * 71 + Math.max(a, b) * 37;
+    return (Math.sin(seed) + 1) / 2;
+  };
+  const weatherFactor = () => ({ clear: 1, rain: .75, fog: .55 })[state.weather];
+  const edgeSpeed = (a, b) => +$('speed').value * weatherFactor()
+    * (1 - (+$('traffic').value / 100) * .65 * congestion(a, b));
+
+function neighbors(id) {
+    const x = id % COLS, y = Math.floor(id / COLS), result = [];
+    if (x > 0) result.push(id - 1);
+    if (x < COLS - 1) result.push(id + 1);
+    if (y > 0) result.push(id - COLS);
+    if (y < ROWS - 1) result.push(id + COLS);
+    return result.filter(n => !state.closures.has(n));
+  }
+
+// Dijkstra routing minimizes estimated travel time through the street graph.
+  function calculateRoute() {
+    const distances = Array(COLS * ROWS).fill(Infinity);
+    const previous = Array(COLS * ROWS).fill(-1);
+    const visited = new Set();
+    distances[state.start] = 0;
+
+while (visited.size < COLS * ROWS) {
+      let current = -1;
+      for (let i = 0; i < distances.length; i++) {
+        if (!visited.has(i) && (current < 0 || distances[i] < distances[current])) current = i;
+      }
+      if (current < 0 || !Number.isFinite(distances[current])) break;
+      if (current === state.end) break;
+      visited.add(current);
+
+for (const next of neighbors(current)) {
+        const cost = distances[current] + edgeLength(current, next) / edgeSpeed(current, next);
+        if (cost < distances[next]) {
+          distances[next] = cost;
+          previous[next] = current;
+        }
+      }
+    }
+
+if (!Number.isFinite(distances[state.end])) return [];
+    const path = [];
+    for (let node = state.end; node !== -1; node = previous[node]) path.unshift(node);
+    return path;
+  }
+
+function notify(message) {
+    $('toast').textContent = message;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $('toast').textContent = '', 4200);
+  }
+
+function formatTime(seconds) {
+    const whole = Math.max(0, Math.round(seconds));
+    return `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
+  }
+
+function plan() {
+    state.start = +$('start').value;
+    state.end = +$('end').value;
+    state.closures.delete(state.start);
+    state.closures.delete(state.end);
+    state.running = false;
+    state.complete = false;
+    state.traveled = 0;
+    state.elapsed = 0;
+    state.path = calculateRoute();
+    state.lengths = state.path.slice(1).map((n, i) => edgeLength(state.path[i], n));
+    state.total = state.lengths.reduce((sum, d) => sum + d, 0);
+    if (state.start === state.end) state.complete = true;
+    updateUI();
+  }
+
+function currentPosition() {
+    if (!state.path.length) return { ...point(state.start), angle: 0, segment: 0 };
+    let remaining = state.traveled;
+    for (let i = 0; i < state.lengths.length; i++) {
+      const length = state.lengths[i];
+      if (remaining < length || i === state.lengths.length - 1) {
+        const a = point(state.path[i]), b = point(state.path[i + 1]);
+        const t = Math.min(1, remaining / length);
+        return {
+          x: a.x + (b.x - a.x) * t,
+          y: a.y + (b.y - a.y) * t,
+          angle: Math.atan2(b.y - a.y, b.x - a.x), segment: i
+        };
+      }
+      remaining -= length;
+    }
+    return { ...point(state.end), angle: 0, segment: 0 };
+  }
+
+function updateUI() {
+    const fraction = state.total ? state.traveled / state.total : (state.complete ? 1 : 0);
+    const position = currentPosition();
+    const speed = state.running && state.path.length > 1
+      ? edgeSpeed(state.path[position.segment], state.path[position.segment + 1]) : 0;
+    const eta = state.lengths.reduce((sum, length, i) =>
+      sum + length * KM_PER_UNIT / edgeSpeed(state.path[i], state.path[i + 1]) * 3600, 0);
+
+$('distance').textContent = (state.total * KM_PER_UNIT).toFixed(2);
+    $('eta').textContent = state.path.length ? formatTime(eta) : '—';
+    $('currentSpeed').textContent = Math.round(speed);
+    $('closureCount').textContent = state.closures.size;
+    $('completion').textContent = Math.round(fraction * 100);
+    $('traveled').textContent = (state.traveled * KM_PER_UNIT).toFixed(2);
+    $('elapsed').textContent = formatTime(state.elapsed);
+    $('progress').style.width = $('distanceProgress').style.width = `${fraction * 100}%`;
+    $('speedLabel').textContent = `${$('speed').value} km/h`;
+    const traffic = +$('traffic').value;
+    $('trafficLabel').textContent = traffic < 25 ? 'Light' : traffic < 65 ? 'Moderate' : 'Heavy';
+    $('run').textContent = state.running ? 'Ⅱ  Pause simulation'
+      : state.complete ? '↻  Run again'
+      : state.traveled ? '▶  Resume simulation' : '▶  Start simulation';
+    $('driveState').textContent = state.running ? 'Autonomous driving'
+      : state.complete ? 'Destination reached' : state.traveled ? 'Paused' : 'Ready to start';
+    $('status').textContent = !state.path.length ? 'No route available. Remove a road closure.'
+      : state.start === state.end ? 'Start and destination are the same.'
+      : state.complete ? 'Journey complete. Destination reached.'
+      : state.running ? 'Navigating the planned route…'
+      : state.traveled ? 'Simulation paused.' : 'Route calculated. Ready to simulate.';
+  }
+
+function roundedRect(x, y, w, h, radius, fill, stroke) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, radius);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+  }
+
+function line(a, b, color, width) {
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+  }
+
+function circle(x, y, radius, color) {
+    ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = color; ctx.fill();
+  }
+
+function drawMap(time) {
+    const dpr = window.devicePixelRatio || 1;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, viewport.width, viewport.height);
+    ctx.fillStyle = '#edf0e7';
+    ctx.fillRect(0, 0, viewport.width, viewport.height);
+    ctx.translate(viewport.x, viewport.y);
+    ctx.scale(viewport.scale, viewport.scale);
+
+// Deterministic city blocks and landscaped courtyards.
+    for (let y = 0; y < ROWS - 1; y++) {
+      for (let x = 0; x < COLS - 1; x++) {
+        const bx = 60 + x * STEP_X + 16, by = 60 + y * STEP_Y + 16;
+        const park = (x === 2 && y === 2) || (x === 3 && y === 2)
+          || (x === 6 && y === 4) || (x === 7 && y === 4);
+        roundedRect(bx, by, STEP_X - 32, STEP_Y - 32, 6, park ? '#dce8c8' : '#e3e7dd');
+        if (park) {
+          for (let t = 0; t < 6; t++) {
+            const tx = bx + 12 + ((t * 29) % 43), ty = by + 10 + ((t * 17) % 34);
+            circle(tx, ty, 6, '#ccddb6'); circle(tx - 1, ty - 1, 4, '#d3e2c0');
+          }
+        } else {
+          roundedRect(bx + 5, by + 5, 22 + ((x + y) % 3) * 4, 21, 3, '#d5dbcf', '#cdd5c6');
+          roundedRect(bx + 38, by + 6, 22, 43, 3, '#dde2d5', '#d2dacb');
+          roundedRect(bx + 5, by + 32, 26, 18, 3, '#d9dfd2', '#ced7c6');
+        }
+      }
+    }
+
+for (let y = 0; y < ROWS; y++) {
+      const a = { x: 0, y: 60 + y * STEP_Y }, b = { x: WORLD_W, y: a.y };
+      line(a, b, '#d9dfd0', 24); line(a, b, '#fcfdf9', 21);
+    }
+    for (let x = 0; x < COLS; x++) {
+      const a = { x: 60 + x * STEP_X, y: 0 }, b = { x: a.x, y: WORLD_H };
+      line(a, b, '#d9dfd0', 24); line(a, b, '#fcfdf9', 21);
+    }
+
+ctx.save();
+    ctx.setLineDash([5, 9]);
+    for (let y = 0; y < ROWS; y++)
+      line({ x: 0, y: 60 + y * STEP_Y }, { x: WORLD_W, y: 60 + y * STEP_Y }, '#dce2d3', .8);
+    for (let x = 0; x < COLS; x++)
+      line({ x: 60 + x * STEP_X, y: 0 }, { x: 60 + x * STEP_X, y: WORLD_H }, '#dce2d3', .8);
+    ctx.restore();
+
+ctx.font = '9px "DM Sans", sans-serif';
+    ctx.textAlign = 'center'; ctx.fillStyle = '#9da78f';
+    ctx.fillText('CENTRAL PARK', 351, 299);
+    ctx.fillText('RIVERSIDE GARDENS', 744, 477);
+    ctx.font = '8px "DM Sans", sans-serif';
+    ctx.fillText('GREENFIELD AVENUE', 480, 53);
+    ctx.fillText('WEST LOOP', 185, 581);
+    ctx.fillText('CAMPUS DRIVE', 771, 229);
+
+// Decorative traffic represents density; it is not a collision model.
+    const cars = Math.round(+$('traffic').value / 4);
+    for (let i = 0; i < cars; i++) {
+      const row = i % ROWS;
+      const x = ((i * 127 + time * .018 * (i % 2 ? 1 : -1)) % 970 + 970) % 970;
+      roundedRect(x, 60 + row * STEP_Y + (i % 2 ? 3 : -7), 10, 5, 2, '#c5ceba');
+    }
+
+if (state.path.length > 1) {
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      const drawRoute = (color, width) => {
+        ctx.beginPath();
+        state.path.forEach((id, i) => {
+          const p = point(id);
+          if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+        });
+        ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
+      };
+      drawRoute('#b5cc933f', 19);
+      drawRoute('#7a9c4e', 7);
+      drawRoute('#bdd991', 3);
+    }
+
+for (const id of state.closures) {
+      const p = point(id);
+      circle(p.x, p.y, 12, '#fff4ed');
+      circle(p.x, p.y, 9, '#cf8068');
+      line({ x: p.x - 4, y: p.y - 4 }, { x: p.x + 4, y: p.y + 4 }, '#fff', 2);
+      line({ x: p.x + 4, y: p.y - 4 }, { x: p.x - 4, y: p.y + 4 }, '#fff', 2);
+    }
+
+for (const [id, text, color] of [
+      [state.start, 'A', '#80a352'], [state.end, 'B', '#33482c']
+    ]) {
+      const p = point(id);
+      circle(p.x, p.y, 16, '#ffffff');
+      circle(p.x, p.y, 12, color);
+      ctx.font = 'bold 11px "DM Sans", sans-serif';
+      ctx.textAlign = 'center'; ctx.fillStyle = 'white';
+      ctx.fillText(text, p.x, p.y + 4);
+    }
+
+const car = currentPosition();
+    if (state.layer === 'sensors') {
+      ctx.save();
+      ctx.strokeStyle = '#6a974b66'; ctx.lineWidth = 1;
+      for (const radius of [35, 65, 100]) {
+        ctx.beginPath(); ctx.arc(car.x, car.y, radius, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.translate(car.x, car.y); ctx.rotate(time * .001);
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.arc(0, 0, 100, -.25, .25); ctx.closePath();
+      ctx.fillStyle = '#9fc77930'; ctx.fill();
+      ctx.restore();
+    }
+
+ctx.save();
+    ctx.translate(car.x, car.y); ctx.rotate(car.angle);
+    ctx.shadowColor = '#394e3755'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 3;
+    roundedRect(-15, -9, 30, 18, 6, '#2d4028', '#ffffff');
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+    roundedRect(2, -6, 6, 12, 2, '#a8bf94');
+    roundedRect(-9, -5, 5, 10, 2, '#6e865b');
+    roundedRect(12, -6, 2, 4, 1, '#e3f8ac');
+    roundedRect(12, 2, 2, 4, 1, '#e3f8ac');
+    ctx.restore();
+
+if (state.weather === 'rain') {
+      ctx.fillStyle = '#7892a812'; ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+      for (let i = 0; i < 75; i++) {
+        const x = (i * 137 + time * .07) % WORLD_W;
+        const y = (i * 83 + time * .18) % WORLD_H;
+        line({ x, y }, { x: x - 4, y: y + 10 }, '#809ba64a', 1);
+      }
+    } else if (state.weather === 'fog') {
+      ctx.fillStyle = '#f5f7f1a0'; ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+    }
+  }
+
+function resize() {
+    const bounds = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(bounds.width * dpr);
+    canvas.height = Math.round(bounds.height * dpr);
+    const scale = Math.min(bounds.width / WORLD_W, bounds.height / WORLD_H);
+    viewport = {
+      width: bounds.width, height: bounds.height, scale,
+      x: (bounds.width - WORLD_W * scale) / 2,
+      y: (bounds.height - WORLD_H * scale) / 2
+    };
+  }
+  new ResizeObserver(resize).observe(canvas);
+
+canvas.addEventListener('click', event => {
+    const bounds = canvas.getBoundingClientRect();
+    const x = (event.clientX - bounds.left - viewport.x) / viewport.scale;
+    const y = (event.clientY - bounds.top - viewport.y) / viewport.scale;
+    const col = Math.round((x - 60) / STEP_X), row = Math.round((y - 60) / STEP_Y);
+    if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
+    const id = row * COLS + col, p = point(id);
+    if (Math.hypot(x - p.x, y - p.y) > 28) return;
+    if (id === state.start || id === state.end) {
+      notify('Choose route endpoints in the configuration panel.'); return;
+    }
+    if (state.closures.has(id)) state.closures.delete(id); else state.closures.add(id);
+    plan();
+    notify('Road network updated. Journey reset and route recalculated.');
+  });
+
+for (const id of ['start', 'end']) {
+    $(id).addEventListener('change', plan);
+  }
+  $('speed').addEventListener('input', updateUI);
+  $('traffic').addEventListener('input', updateUI);
+  $('traffic').addEventListener('change', () => {
+    plan();
+    notify('Traffic updated. Route recalculated from the starting point.');
+  });
+
+document.querySelectorAll('[data-weather]').forEach(button => {
+    button.addEventListener('click', () => {
+      state.weather = button.dataset.weather;
+      document.querySelectorAll('[data-weather]').forEach(b => {
+        const active = b === button;
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-pressed', active);
+      });
+      updateUI();
+    });
+  });
+
+document.querySelectorAll('[data-layer]').forEach(button => {
+    button.addEventListener('click', () => {
+      state.layer = button.dataset.layer;
+      document.querySelectorAll('[data-layer]').forEach(b => {
+        const active = b === button;
+        b.classList.toggle('active', active);
+        b.setAttribute('aria-pressed', active);
+      });
+    });
+  });
+
+$('run').addEventListener('click', () => {
+    if (!state.path.length) {
+      notify('No available path. Remove closures or choose another destination.'); return;
+    }
+    if (state.start === state.end) {
+      notify('Choose a different destination to start driving.'); return;
+    }
+    if (state.complete) plan();
+    state.running = !state.running;
+    updateUI();
+  });
+
+$('reset').addEventListener('click', () => {
+    state.closures.clear();
+    plan();
+    notify('Journey reset. All road closures cleared.');
+  });
+
+$('help').addEventListener('click', () => {
+    notify('Choose endpoints and press Start. Click map intersections to toggle closures. Sensors shows a conceptual scanning overlay. Runs play at 20× speed.');
+  });
+
+$('export').addEventListener('click', () => {
+    const data = {
+      simulator: 'Vector — conceptual autonomous route simulator',
+      exportedAt: new Date().toISOString(),
+      start: places.find(p => p.id === state.start).name,
+      destination: places.find(p => p.id === state.end).name,
+      status: !state.path.length ? 'unreachable' : state.complete ? 'completed' : state.running ? 'running' : 'idle_or_paused',
+      weather: state.weather,
+      speedLimitKmh: +$('speed').value,
+      trafficDensityPercent: +$('traffic').value,
+      routeDistanceKm: +(state.total * KM_PER_UNIT).toFixed(3),
+      traveledKm: +(state.traveled * KM_PER_UNIT).toFixed(3),
+      simulationSeconds: +state.elapsed.toFixed(1),
+      playbackMultiplier: PLAYBACK,
+      closedIntersections: [...state.closures],
+      route: state.path.map(id => ({ intersection: id, ...point(id) }))
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url; link.download = 'vector-simulation.json';
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    notify('Simulation snapshot exported.');
+  });
+
+let lastFrame = 0, lastUI = 0;
+  function frame(now) {
+    const dt = lastFrame ? Math.min((now - lastFrame) / 1000, .1) : 0;
+    lastFrame = now;
+
+if (state.running && state.total > 0) {
+      let remainingTime = dt * PLAYBACK;
+      // Consume time per segment so traffic-dependent speeds stay consistent.
+      while (remainingTime > 0 && state.traveled < state.total) {
+        const car = currentPosition();
+        const segment = car.segment;
+        const boundary = state.lengths.slice(0, segment + 1).reduce((sum, n) => sum + n, 0);
+        const unitsPerSecond = edgeSpeed(state.path[segment], state.path[segment + 1]) / 3600 / KM_PER_UNIT;
+        const timeToBoundary = Math.max(0, boundary - state.traveled) / unitsPerSecond;
+        const used = Math.min(remainingTime, timeToBoundary);
+        state.traveled = Math.min(state.total, state.traveled + used * unitsPerSecond);
+        state.elapsed += used;
+        remainingTime -= used;
+        if (timeToBoundary <= used + 1e-9) state.traveled = Math.min(state.total, boundary + 1e-8);
+        if (used === 0 && timeToBoundary > 0) break;
+      }
+      if (state.traveled >= state.total) {
+        state.traveled = state.total;
+        state.running = false;
+        state.complete = true;
+        notify('Destination reached. Your simulation is complete.');
+        updateUI();
+      }
+    }
+
+drawMap(now);
+    if (now - lastUI > 120) { updateUI(); lastUI = now; }
+    requestAnimationFrame(frame);
+  }
+
+plan();
+  resize();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
