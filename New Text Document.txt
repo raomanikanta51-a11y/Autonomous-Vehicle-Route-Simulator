@@ -398,7 +398,7 @@ input[type=range] { width: 100%; accent-color: #84a84e; height: 4px; margin: 6px
 (() => {
   'use strict';
 
-const $ = id => document.getElementById(id);
+  const $ = id => document.getElementById(id);
   const canvas = $('map');
   const ctx = canvas.getContext('2d');
   const COLS = 10, ROWS = 7, STEP_X = 98, STEP_Y = 88;
@@ -406,7 +406,7 @@ const $ = id => document.getElementById(id);
   const KM_PER_UNIT = 0.002;
   const PLAYBACK = 20;
 
-const places = [
+  const places = [
     { id: 61, name: 'Westside charging hub' },
     { id: 18, name: 'Innovation campus' },
     { id: 23, name: 'Central park entrance' },
@@ -415,7 +415,7 @@ const places = [
     { id: 68, name: 'Riverside terminal' }
   ];
 
-for (const place of places) {
+  for (const place of places) {
     for (const target of ['start', 'end']) {
       const option = document.createElement('option');
       option.value = place.id;
@@ -426,13 +426,14 @@ for (const place of places) {
   $('start').value = 61;
   $('end').value = 18;
 
-const state = {
+  const state = {
     path: [], lengths: [], total: 0, traveled: 0, elapsed: 0,
     running: false, complete: false, weather: 'clear', layer: 'map',
     closures: new Set(), start: 61, end: 18
   };
   let viewport = { scale: 1, x: 0, y: 0, width: 1, height: 1 };
   let toastTimer;
+
   const point = id => ({ x: 60 + (id % COLS) * STEP_X, y: 60 + Math.floor(id / COLS) * STEP_Y });
   const edgeLength = (a, b) => {
     const p = point(a), q = point(b);
@@ -446,7 +447,7 @@ const state = {
   const edgeSpeed = (a, b) => +$('speed').value * weatherFactor()
     * (1 - (+$('traffic').value / 100) * .65 * congestion(a, b));
 
-function neighbors(id) {
+  function neighbors(id) {
     const x = id % COLS, y = Math.floor(id / COLS), result = [];
     if (x > 0) result.push(id - 1);
     if (x < COLS - 1) result.push(id + 1);
@@ -455,14 +456,13 @@ function neighbors(id) {
     return result.filter(n => !state.closures.has(n));
   }
 
-// Dijkstra routing minimizes estimated travel time through the street graph.
   function calculateRoute() {
     const distances = Array(COLS * ROWS).fill(Infinity);
     const previous = Array(COLS * ROWS).fill(-1);
     const visited = new Set();
     distances[state.start] = 0;
 
-while (visited.size < COLS * ROWS) {
+    while (visited.size < COLS * ROWS) {
       let current = -1;
       for (let i = 0; i < distances.length; i++) {
         if (!visited.has(i) && (current < 0 || distances[i] < distances[current])) current = i;
@@ -471,7 +471,7 @@ while (visited.size < COLS * ROWS) {
       if (current === state.end) break;
       visited.add(current);
 
-for (const next of neighbors(current)) {
+      for (const next of neighbors(current)) {
         const cost = distances[current] + edgeLength(current, next) / edgeSpeed(current, next);
         if (cost < distances[next]) {
           distances[next] = cost;
@@ -480,24 +480,24 @@ for (const next of neighbors(current)) {
       }
     }
 
-if (!Number.isFinite(distances[state.end])) return [];
+    if (!Number.isFinite(distances[state.end])) return [];
     const path = [];
     for (let node = state.end; node !== -1; node = previous[node]) path.unshift(node);
     return path;
   }
 
-function notify(message) {
+  function notify(message) {
     $('toast').textContent = message;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => $('toast').textContent = '', 4200);
   }
 
-function formatTime(seconds) {
+  function formatTime(seconds) {
     const whole = Math.max(0, Math.round(seconds));
     return `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
   }
 
-function plan() {
+  function plan() {
     state.start = +$('start').value;
     state.end = +$('end').value;
     state.closures.delete(state.start);
@@ -513,7 +513,7 @@ function plan() {
     updateUI();
   }
 
-function currentPosition() {
+  function currentPosition() {
     if (!state.path.length) return { ...point(state.start), angle: 0, segment: 0 };
     let remaining = state.traveled;
     for (let i = 0; i < state.lengths.length; i++) {
@@ -532,7 +532,7 @@ function currentPosition() {
     return { ...point(state.end), angle: 0, segment: 0 };
   }
 
-function updateUI() {
+  function updateUI() {
     const fraction = state.total ? state.traveled / state.total : (state.complete ? 1 : 0);
     const position = currentPosition();
     const speed = state.running && state.path.length > 1
@@ -540,7 +540,7 @@ function updateUI() {
     const eta = state.lengths.reduce((sum, length, i) =>
       sum + length * KM_PER_UNIT / edgeSpeed(state.path[i], state.path[i + 1]) * 3600, 0);
 
-$('distance').textContent = (state.total * KM_PER_UNIT).toFixed(2);
+    $('distance').textContent = (state.total * KM_PER_UNIT).toFixed(2);
     $('eta').textContent = state.path.length ? formatTime(eta) : '—';
     $('currentSpeed').textContent = Math.round(speed);
     $('closureCount').textContent = state.closures.size;
@@ -563,24 +563,24 @@ $('distance').textContent = (state.total * KM_PER_UNIT).toFixed(2);
       : state.traveled ? 'Simulation paused.' : 'Route calculated. Ready to simulate.';
   }
 
-function roundedRect(x, y, w, h, radius, fill, stroke) {
+  function roundedRect(x, y, w, h, radius, fill, stroke) {
     ctx.beginPath();
     ctx.roundRect(x, y, w, h, radius);
     if (fill) { ctx.fillStyle = fill; ctx.fill(); }
     if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
   }
 
-function line(a, b, color, width) {
+  function line(a, b, color, width) {
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
     ctx.strokeStyle = color; ctx.lineWidth = width; ctx.stroke();
   }
 
-function circle(x, y, radius, color) {
+  function circle(x, y, radius, color) {
     ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fillStyle = color; ctx.fill();
   }
 
-function drawMap(time) {
+  function drawMap(time) {
     const dpr = window.devicePixelRatio || 1;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, viewport.width, viewport.height);
@@ -589,7 +589,6 @@ function drawMap(time) {
     ctx.translate(viewport.x, viewport.y);
     ctx.scale(viewport.scale, viewport.scale);
 
-// Deterministic city blocks and landscaped courtyards.
     for (let y = 0; y < ROWS - 1; y++) {
       for (let x = 0; x < COLS - 1; x++) {
         const bx = 60 + x * STEP_X + 16, by = 60 + y * STEP_Y + 16;
@@ -609,7 +608,7 @@ function drawMap(time) {
       }
     }
 
-for (let y = 0; y < ROWS; y++) {
+    for (let y = 0; y < ROWS; y++) {
       const a = { x: 0, y: 60 + y * STEP_Y }, b = { x: WORLD_W, y: a.y };
       line(a, b, '#d9dfd0', 24); line(a, b, '#fcfdf9', 21);
     }
@@ -618,7 +617,7 @@ for (let y = 0; y < ROWS; y++) {
       line(a, b, '#d9dfd0', 24); line(a, b, '#fcfdf9', 21);
     }
 
-ctx.save();
+    ctx.save();
     ctx.setLineDash([5, 9]);
     for (let y = 0; y < ROWS; y++)
       line({ x: 0, y: 60 + y * STEP_Y }, { x: WORLD_W, y: 60 + y * STEP_Y }, '#dce2d3', .8);
@@ -626,7 +625,7 @@ ctx.save();
       line({ x: 60 + x * STEP_X, y: 0 }, { x: 60 + x * STEP_X, y: WORLD_H }, '#dce2d3', .8);
     ctx.restore();
 
-ctx.font = '9px "DM Sans", sans-serif';
+    ctx.font = '9px "DM Sans", sans-serif';
     ctx.textAlign = 'center'; ctx.fillStyle = '#9da78f';
     ctx.fillText('CENTRAL PARK', 351, 299);
     ctx.fillText('RIVERSIDE GARDENS', 744, 477);
@@ -635,7 +634,6 @@ ctx.font = '9px "DM Sans", sans-serif';
     ctx.fillText('WEST LOOP', 185, 581);
     ctx.fillText('CAMPUS DRIVE', 771, 229);
 
-// Decorative traffic represents density; it is not a collision model.
     const cars = Math.round(+$('traffic').value / 4);
     for (let i = 0; i < cars; i++) {
       const row = i % ROWS;
@@ -643,7 +641,7 @@ ctx.font = '9px "DM Sans", sans-serif';
       roundedRect(x, 60 + row * STEP_Y + (i % 2 ? 3 : -7), 10, 5, 2, '#c5ceba');
     }
 
-if (state.path.length > 1) {
+    if (state.path.length > 1) {
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       const drawRoute = (color, width) => {
         ctx.beginPath();
@@ -658,7 +656,7 @@ if (state.path.length > 1) {
       drawRoute('#bdd991', 3);
     }
 
-for (const id of state.closures) {
+    for (const id of state.closures) {
       const p = point(id);
       circle(p.x, p.y, 12, '#fff4ed');
       circle(p.x, p.y, 9, '#cf8068');
@@ -666,7 +664,7 @@ for (const id of state.closures) {
       line({ x: p.x + 4, y: p.y - 4 }, { x: p.x - 4, y: p.y + 4 }, '#fff', 2);
     }
 
-for (const [id, text, color] of [
+    for (const [id, text, color] of [
       [state.start, 'A', '#80a352'], [state.end, 'B', '#33482c']
     ]) {
       const p = point(id);
@@ -677,7 +675,7 @@ for (const [id, text, color] of [
       ctx.fillText(text, p.x, p.y + 4);
     }
 
-const car = currentPosition();
+    const car = currentPosition();
     if (state.layer === 'sensors') {
       ctx.save();
       ctx.strokeStyle = '#6a974b66'; ctx.lineWidth = 1;
@@ -691,7 +689,7 @@ const car = currentPosition();
       ctx.restore();
     }
 
-ctx.save();
+    ctx.save();
     ctx.translate(car.x, car.y); ctx.rotate(car.angle);
     ctx.shadowColor = '#394e3755'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 3;
     roundedRect(-15, -9, 30, 18, 6, '#2d4028', '#ffffff');
@@ -702,7 +700,7 @@ ctx.save();
     roundedRect(12, 2, 2, 4, 1, '#e3f8ac');
     ctx.restore();
 
-if (state.weather === 'rain') {
+    if (state.weather === 'rain') {
       ctx.fillStyle = '#7892a812'; ctx.fillRect(0, 0, WORLD_W, WORLD_H);
       for (let i = 0; i < 75; i++) {
         const x = (i * 137 + time * .07) % WORLD_W;
@@ -714,7 +712,7 @@ if (state.weather === 'rain') {
     }
   }
 
-function resize() {
+  function resize() {
     const bounds = canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
     canvas.width = Math.round(bounds.width * dpr);
@@ -728,7 +726,7 @@ function resize() {
   }
   new ResizeObserver(resize).observe(canvas);
 
-canvas.addEventListener('click', event => {
+  canvas.addEventListener('click', event => {
     const bounds = canvas.getBoundingClientRect();
     const x = (event.clientX - bounds.left - viewport.x) / viewport.scale;
     const y = (event.clientY - bounds.top - viewport.y) / viewport.scale;
@@ -744,7 +742,7 @@ canvas.addEventListener('click', event => {
     notify('Road network updated. Journey reset and route recalculated.');
   });
 
-for (const id of ['start', 'end']) {
+  for (const id of ['start', 'end']) {
     $(id).addEventListener('change', plan);
   }
   $('speed').addEventListener('input', updateUI);
@@ -754,7 +752,7 @@ for (const id of ['start', 'end']) {
     notify('Traffic updated. Route recalculated from the starting point.');
   });
 
-document.querySelectorAll('[data-weather]').forEach(button => {
+  document.querySelectorAll('[data-weather]').forEach(button => {
     button.addEventListener('click', () => {
       state.weather = button.dataset.weather;
       document.querySelectorAll('[data-weather]').forEach(b => {
@@ -766,7 +764,7 @@ document.querySelectorAll('[data-weather]').forEach(button => {
     });
   });
 
-document.querySelectorAll('[data-layer]').forEach(button => {
+  document.querySelectorAll('[data-layer]').forEach(button => {
     button.addEventListener('click', () => {
       state.layer = button.dataset.layer;
       document.querySelectorAll('[data-layer]').forEach(b => {
@@ -777,7 +775,7 @@ document.querySelectorAll('[data-layer]').forEach(button => {
     });
   });
 
-$('run').addEventListener('click', () => {
+  $('run').addEventListener('click', () => {
     if (!state.path.length) {
       notify('No available path. Remove closures or choose another destination.'); return;
     }
@@ -789,17 +787,17 @@ $('run').addEventListener('click', () => {
     updateUI();
   });
 
-$('reset').addEventListener('click', () => {
+  $('reset').addEventListener('click', () => {
     state.closures.clear();
     plan();
     notify('Journey reset. All road closures cleared.');
   });
 
-$('help').addEventListener('click', () => {
+  $('help').addEventListener('click', () => {
     notify('Choose endpoints and press Start. Click map intersections to toggle closures. Sensors shows a conceptual scanning overlay. Runs play at 20× speed.');
   });
 
-$('export').addEventListener('click', () => {
+  $('export').addEventListener('click', () => {
     const data = {
       simulator: 'Vector — conceptual autonomous route simulator',
       exportedAt: new Date().toISOString(),
@@ -824,14 +822,13 @@ $('export').addEventListener('click', () => {
     notify('Simulation snapshot exported.');
   });
 
-let lastFrame = 0, lastUI = 0;
+  let lastFrame = 0, lastUI = 0;
   function frame(now) {
     const dt = lastFrame ? Math.min((now - lastFrame) / 1000, .1) : 0;
     lastFrame = now;
 
-if (state.running && state.total > 0) {
+    if (state.running && state.total > 0) {
       let remainingTime = dt * PLAYBACK;
-      // Consume time per segment so traffic-dependent speeds stay consistent.
       while (remainingTime > 0 && state.traveled < state.total) {
         const car = currentPosition();
         const segment = car.segment;
@@ -854,12 +851,12 @@ if (state.running && state.total > 0) {
       }
     }
 
-drawMap(now);
+    drawMap(now);
     if (now - lastUI > 120) { updateUI(); lastUI = now; }
     requestAnimationFrame(frame);
   }
 
-plan();
+  plan();
   resize();
   requestAnimationFrame(frame);
 })();
